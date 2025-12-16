@@ -1,24 +1,32 @@
-import { Sparkles } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Sparkles } from "lucide-react"
 
-interface AISearchSummaryProps {
-  query: string
-}
-
-export function AISearchSummary({ query }: AISearchSummaryProps) {
+export function AISearchSummary() {
   return (
-    <Card className="border-2 border-purple-200 bg-purple-50/50">
-      <CardContent className="pt-6">
-        <div className="flex gap-3">
-          <Sparkles className="h-5 w-5 text-purple-500 shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <h3 className="font-semibold">AI Search Summary</h3>
-            <p className="text-sm text-muted-foreground">
-              Found <span className="font-semibold text-foreground">127 offers</span> for "{query}" ranging from{" "}
-              <span className="font-semibold text-foreground">$599 to $1,199</span>. Best deal:{" "}
-              <span className="font-semibold text-foreground">$899 from Alibaba</span> with MOQ 50 units. Note: Most
-              suppliers require minimum order quantities of 50-100 units.
-            </p>
+    <Card className="border-primary/50 bg-primary/5">
+      <CardContent className="flex items-start gap-4 p-4">
+        <Sparkles className="mt-1 h-5 w-5 shrink-0 text-primary" />
+        <div className="flex-1">
+          <div className="mb-2 flex items-center gap-2">
+            <h3 className="font-medium">AI Search Summary</h3>
+            <Badge className="bg-primary/20 text-primary hover:bg-primary/30" variant="secondary">
+              Generated
+            </Badge>
+          </div>
+          <div className="grid gap-3 text-sm md:grid-cols-3">
+            <div>
+              <span className="text-muted-foreground">Best Deal: </span>
+              <span className="font-medium text-accent">iPhone 15 Pro Max at $1,089</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Avg Price: </span>
+              <span className="font-medium">$1,150 across 4 suppliers</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">MOQ Warning: </span>
+              <span className="font-medium text-chart-3">Alibaba requires min. 5 units</span>
+            </div>
           </div>
         </div>
       </CardContent>

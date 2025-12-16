@@ -1,130 +1,221 @@
-import {
-  FileText,
-  Users,
-  AlertTriangle,
-  TrendingUp,
-  Bell,
-  Settings,
-  LinkIcon,
-  Award,
-  MessageSquare,
-} from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Package, Users, AlertCircle, FileText, LinkIcon, Shield, Bell } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-
-const summaryCards = [
-  {
-    title: "Incoming RFQ",
-    value: "24",
-    description: "Pending quotes",
-    icon: FileText,
-    color: "text-blue-500",
-  },
-  {
-    title: "New Customers",
-    value: "8",
-    description: "This week",
-    icon: Users,
-    color: "text-green-500",
-  },
-  {
-    title: "Critical Stock",
-    value: "3",
-    description: "Items low",
-    icon: AlertTriangle,
-    color: "text-orange-500",
-  },
-  {
-    title: "Revenue",
-    value: "$45.2K",
-    description: "This month",
-    icon: TrendingUp,
-    color: "text-purple-500",
-  },
-]
-
-const managementActions = [
-  { title: "Quote Management", icon: FileText, enabled: true },
-  { title: "Connect API Source", icon: LinkIcon, enabled: false },
-  { title: "Trust Score", icon: Award, enabled: true },
-  { title: "RFQ Notifications", icon: Bell, enabled: true },
-  { title: "Auto-Response Settings", icon: MessageSquare, enabled: false },
-  { title: "Price Update Alerts", icon: TrendingUp, enabled: true },
-  { title: "Customer Management", icon: Users, enabled: true },
-  { title: "Inventory Sync", icon: Settings, enabled: false },
-]
+import { Label } from "@/components/ui/label"
+import { mockRFQs } from "@/lib/mock-data"
 
 export default function SupplierDashboardPage() {
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Supplier Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Manage your supplier account and settings</p>
-      </div>
-
+    <div className="p-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {summaryCards.map((card, index) => (
-          <Card key={index}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-                <card.icon className={`h-5 w-5 ${card.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="mb-6 grid gap-4 md:grid-cols-4">
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">New RFQs</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-accent">{mockRFQs.filter((rfq) => rfq.status === "new").length}</p>
+            <p className="text-xs text-muted-foreground">Awaiting response</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Critical Stock</CardTitle>
+              <AlertCircle className="h-4 w-4 text-destructive" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-destructive">3</p>
+            <p className="text-xs text-muted-foreground">Items below minimum</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">New Customers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">12</p>
+            <p className="text-xs text-muted-foreground">This month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Trust Score</CardTitle>
+              <Shield className="h-4 w-4 text-accent" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-accent">9.2</p>
+            <p className="text-xs text-muted-foreground">Excellent rating</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Management & Settings */}
-      <Card>
+      {/* Management Toggles */}
+      <Card className="mb-6 border-border bg-card">
         <CardHeader>
-          <CardTitle>Management & Settings</CardTitle>
+          <CardTitle>Management Settings</CardTitle>
+          <CardDescription>Control your supplier dashboard features and integrations</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {managementActions.map((action, index) => (
-              <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                <div className="flex items-center gap-3">
-                  <action.icon className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">{action.title}</span>
+          <div className="space-y-6">
+            {/* Quote Management */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/50 p-4">
+              <div className="flex items-start gap-3">
+                <FileText className="mt-1 h-5 w-5 text-primary" />
+                <div className="flex-1">
+                  <Label htmlFor="quote-management" className="text-base font-medium">
+                    Quote Management
+                  </Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Automatically respond to RFQs with your current pricing and availability
+                  </p>
                 </div>
-                <Switch checked={action.enabled} />
               </div>
-            ))}
+              <Switch id="quote-management" defaultChecked />
+            </div>
+
+            {/* API Source Connection */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/50 p-4">
+              <div className="flex items-start gap-3">
+                <LinkIcon className="mt-1 h-5 w-5 text-primary" />
+                <div className="flex-1">
+                  <Label htmlFor="api-connection" className="text-base font-medium">
+                    API Source Connection
+                  </Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Sync your inventory and pricing with external systems in real-time
+                  </p>
+                  <Button size="sm" variant="outline" className="mt-2 bg-transparent">
+                    Configure API
+                  </Button>
+                </div>
+              </div>
+              <Switch id="api-connection" />
+            </div>
+
+            {/* Trust Score */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/50 p-4">
+              <div className="flex items-start gap-3">
+                <Shield className="mt-1 h-5 w-5 text-accent" />
+                <div className="flex-1">
+                  <Label htmlFor="trust-score" className="text-base font-medium">
+                    Trust Score Display
+                  </Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Show your trust score and verification badges to potential buyers
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Badge className="bg-accent/20 text-accent">Score: 9.2</Badge>
+                    <Badge className="bg-primary/20 text-primary">Verified Supplier</Badge>
+                  </div>
+                </div>
+              </div>
+              <Switch id="trust-score" defaultChecked />
+            </div>
+
+            {/* RFQ Notifications */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/50 p-4">
+              <div className="flex items-start gap-3">
+                <Bell className="mt-1 h-5 w-5 text-primary" />
+                <div className="flex-1">
+                  <Label htmlFor="rfq-notifications" className="text-base font-medium">
+                    RFQ Notifications
+                  </Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Receive instant notifications when buyers submit RFQs for your products
+                  </p>
+                </div>
+              </div>
+              <Switch id="rfq-notifications" defaultChecked />
+            </div>
+
+            {/* Product Management */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-secondary/50 p-4">
+              <div className="flex items-start gap-3">
+                <Package className="mt-1 h-5 w-5 text-primary" />
+                <div className="flex-1">
+                  <Label htmlFor="product-management" className="text-base font-medium">
+                    Product Catalog
+                  </Label>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Manage your product listings, inventory levels, and pricing
+                  </p>
+                  <Button size="sm" variant="outline" className="mt-2 bg-transparent">
+                    Manage Products
+                  </Button>
+                </div>
+              </div>
+              <Badge className="bg-secondary text-secondary-foreground">45 Active</Badge>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <Card>
+      {/* RFQ List */}
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>Recent RFQs</CardTitle>
+          <CardDescription>Request for Quotations from potential buyers</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Button variant="outline" className="justify-start bg-transparent">
-              <FileText className="mr-2 h-4 w-4" />
-              View All RFQs
-            </Button>
-            <Button variant="outline" className="justify-start bg-transparent">
-              <Users className="mr-2 h-4 w-4" />
-              Customer List
-            </Button>
-            <Button variant="outline" className="justify-start bg-transparent">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Update Prices
-            </Button>
-            <Button variant="outline" className="justify-start bg-transparent">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </Button>
+          <div className="space-y-4">
+            {mockRFQs.map((rfq) => (
+              <div key={rfq.id} className="flex items-start justify-between rounded-lg border border-border p-4">
+                <div className="flex-1">
+                  <div className="mb-2 flex items-start justify-between">
+                    <div>
+                      <h4 className="font-medium">{rfq.productName}</h4>
+                      <p className="text-sm text-muted-foreground">{rfq.customerName}</p>
+                    </div>
+                    <Badge
+                      variant={rfq.status === "new" ? "default" : "secondary"}
+                      className={
+                        rfq.status === "new"
+                          ? "bg-accent text-accent-foreground"
+                          : rfq.status === "quoted"
+                            ? "bg-chart-3/20 text-chart-3"
+                            : "bg-secondary text-secondary-foreground"
+                      }
+                    >
+                      {rfq.status.charAt(0).toUpperCase() + rfq.status.slice(1)}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-3 text-sm md:grid-cols-3">
+                    <div>
+                      <span className="text-muted-foreground">Quantity: </span>
+                      <span className="font-medium">{rfq.quantity} units</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Budget: </span>
+                      <span className="font-medium">${rfq.budget.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Deadline: </span>
+                      <span className="font-medium">{new Date(rfq.deadline).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="ml-4 flex gap-2">
+                  <Button size="sm" variant={rfq.status === "new" ? "default" : "outline"}>
+                    {rfq.status === "new" ? "Quote" : "View"}
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

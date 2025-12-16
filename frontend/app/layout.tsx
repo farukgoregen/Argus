@@ -3,15 +3,14 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { AppSidebar } from "@/components/app-sidebar"
-import { AppHeader } from "@/components/app-header"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Supplier Hub - Find the Best Prices",
-  description: "Professional supplier analysis platform for comparing prices across multiple suppliers",
+  title: "Argus - Global Sourcing Intelligence Platform",
+  description:
+    "The benchmark for global sourcing intelligence. Analyze price trends, calculate profit margins, and secure your supply chain.",
   generator: "v0.app",
   icons: {
     icon: [
@@ -38,15 +37,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={`font-sans antialiased`}>
-        <div className="flex min-h-screen">
-          <AppSidebar />
-          <div className="flex-1 flex flex-col">
-            <AppHeader />
-            <main className="flex-1 p-4 lg:p-6 bg-muted/30">{children}</main>
-          </div>
-        </div>
+        {children}
         <Analytics />
       </body>
     </html>

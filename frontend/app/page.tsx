@@ -2,14 +2,18 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, TrendingDown, Shield, BarChart3, Check } from "lucide-react"
-import { PriceTrendPreview } from "@/components/price-trend-preview"
+import { ArrowRight, TrendingDown, Shield, BarChart3, Check, Mail, MapPin, Phone } from "lucide-react"
+import { PublicNavbar } from "@/components/public-navbar"
+import { ContactForm } from "@/components/contact-form"
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Public Navbar */}
+      <PublicNavbar />
+      
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border">
+      <section id="hero" className="relative overflow-hidden border-b border-border pt-16">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
         <div className="container relative mx-auto px-4 py-16 md:py-24 lg:py-32">
           <div className="mx-auto max-w-4xl text-center">
@@ -25,31 +29,26 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button asChild size="lg" className="w-full sm:w-auto">
-                <Link href="/dashboard">
+                <Link href="/register">
                   SIGN UP
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="w-full sm:w-auto bg-transparent">
-                <Link href="/dashboard/supplier">BECOME A SUPPLIER</Link>
+                <Link href="/register?type=supplier">BECOME A SUPPLIER</Link>
               </Button>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              <Link href="#contact" className="underline underline-offset-4 hover:text-foreground">
-                We will contact you
+              <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
+                Already have an account? Sign in
               </Link>
             </p>
-          </div>
-
-          {/* Price Trend Chart Preview */}
-          <div className="mx-auto mt-12 max-w-5xl">
-            <PriceTrendPreview />
           </div>
         </div>
       </section>
 
-      {/* Value Proposition */}
-      <section className="border-b border-border py-16 md:py-24">
+      {/* About Section */}
+      <section id="about" className="border-b border-border py-16 md:py-24 scroll-mt-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="mb-4 text-balance text-3xl font-bold md:text-4xl">The Problem with Price Volatility</h2>
@@ -102,74 +101,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* System Example */}
-      <section className="border-b border-border py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-4 text-balance text-3xl font-bold md:text-4xl">See It In Action</h2>
-            <p className="mb-12 text-pretty text-lg text-muted-foreground">
-              Example analysis for iPhone 15 Pro Max showing real-time supplier comparison
-            </p>
-          </div>
-
-          <div className="mx-auto max-w-4xl">
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-2xl">iPhone 15 Pro Max 256GB</CardTitle>
-                    <CardDescription className="mt-2 text-base">Compare 4 verified suppliers</CardDescription>
-                  </div>
-                  <Badge className="bg-accent/20 text-accent hover:bg-accent/30">Best Deal Available</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg border border-border bg-secondary p-4">
-                      <div className="text-sm text-muted-foreground">Average Market Price</div>
-                      <div className="text-2xl font-bold">$1,150</div>
-                    </div>
-                    <div className="rounded-lg border border-primary/50 bg-primary/10 p-4">
-                      <div className="text-sm text-primary">Cheapest Seller (Amazon)</div>
-                      <div className="text-2xl font-bold text-primary">$1,089</div>
-                      <div className="text-xs text-muted-foreground">5.3% below average</div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-border p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="font-medium">Profit Margin Analysis</span>
-                      <Badge variant="outline">Including VAT & Shipping</Badge>
-                    </div>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Base Price:</span>
-                        <span className="font-medium">$1,089</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">VAT (18%):</span>
-                        <span className="font-medium">$195.02</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Shipping:</span>
-                        <span className="font-medium">Free</span>
-                      </div>
-                      <div className="flex justify-between border-t border-border pt-2 font-bold">
-                        <span>Total Landed Cost:</span>
-                        <span>$1,284.02</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
-      <section className="border-b border-border py-16 md:py-24">
+      <section id="pricing" className="border-b border-border py-16 md:py-24 scroll-mt-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="mb-4 text-balance text-3xl font-bold md:text-4xl">Simple, Transparent Pricing</h2>
@@ -261,8 +194,94 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Trial Section */}
-      <section className="py-16 md:py-24">
+      {/* Contact Section */}
+      <section id="contact" className="border-b border-border py-16 md:py-24 scroll-mt-16">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center">
+            <Badge className="mb-4 bg-primary/20 text-primary hover:bg-primary/30" variant="secondary">
+              Get In Touch
+            </Badge>
+            <h2 className="mb-4 text-balance text-3xl font-bold md:text-4xl">Contact Us</h2>
+            <p className="mb-12 text-pretty text-lg text-muted-foreground">
+              Have questions about our platform? We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
+            </p>
+          </div>
+
+          <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-2">
+            {/* Contact Form */}
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle>Send us a message</CardTitle>
+                <CardDescription>Fill out the form below and we&apos;ll get back to you within 24 hours.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ContactForm />
+              </CardContent>
+            </Card>
+
+            {/* Contact Information */}
+            <div className="space-y-6 lg:pl-8">
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Contact Information</h3>
+                <p className="text-muted-foreground mb-6">
+                  Our team is here to help you optimize your supply chain and maximize your profits.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Email</p>
+                    <a href="mailto:support@argusplatform.com" className="text-muted-foreground hover:text-foreground transition-colors">
+                      support@argusplatform.com
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Phone className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Phone</p>
+                    <a href="tel:+1-555-123-4567" className="text-muted-foreground hover:text-foreground transition-colors">
+                      +1 (555) 123-4567
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Address</p>
+                    <p className="text-muted-foreground">
+                      123 Business District<br />
+                      San Francisco, CA 94105<br />
+                      United States
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-border">
+                <h4 className="font-medium mb-2">Business Hours</h4>
+                <p className="text-sm text-muted-foreground">
+                  Monday - Friday: 9:00 AM - 6:00 PM (PST)<br />
+                  Saturday - Sunday: Closed
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 md:py-24 scroll-mt-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/20 via-card to-card">
             <div className="p-8 text-center md:p-12 lg:p-16">

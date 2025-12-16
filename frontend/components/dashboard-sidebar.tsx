@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Search, Bookmark, MessageSquare, Settings, Package } from "lucide-react"
+import { Home, Search, Bookmark, MessageSquare, Settings, Package, UserCog } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
 
 const navItems = [
   {
@@ -27,6 +28,11 @@ const navItems = [
     icon: MessageSquare,
   },
   {
+    title: "Profile",
+    href: "/dashboard/profile",
+    icon: UserCog,
+  },
+  {
     title: "Settings",
     href: "/dashboard/settings",
     icon: Settings,
@@ -45,6 +51,11 @@ const supplierNavItems = [
     icon: Package,
   },
   {
+    title: "Profile",
+    href: "/dashboard/profile",
+    icon: UserCog,
+  },
+  {
     title: "Settings",
     href: "/dashboard/supplier/settings",
     icon: Settings,
@@ -53,13 +64,26 @@ const supplierNavItems = [
 
 export function DashboardSidebar({ isSupplier = false }: { isSupplier?: boolean }) {
   const pathname = usePathname()
-  const items = isSupplier ? supplierNavItems : navItems
+  const { user, isAuthenticated } = useAuth()
+  
+  // Use user type from auth context if available
+  const effectiveIsSupplier = user?.user_type === 'supplier' || isSupplier
+  const items = effectiveIsSupplier ? supplierNavItems : navItems
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user) return "?"
+    if (user.username) {
+      return user.username.slice(0, 2).toUpperCase()
+    }
+    return user.email.slice(0, 2).toUpperCase()
+  }
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-        <Link href={isSupplier ? "/dashboard/supplier" : "/dashboard"} className="flex items-center gap-2">
+        <Link href={effectiveIsSupplier ? "/dashboard/supplier" : "/dashboard"} className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <span className="font-bold text-primary-foreground">A</span>
           </div>
@@ -93,11 +117,17 @@ export function DashboardSidebar({ isSupplier = false }: { isSupplier?: boolean 
       <div className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
-            <span className="text-sm font-medium text-primary-foreground">JD</span>
+            <span className="text-sm font-medium text-primary-foreground">
+              {isAuthenticated ? getUserInitials() : "?"}
+            </span>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-sidebar-foreground">John Doe</p>
-            <p className="text-xs text-muted-foreground">{isSupplier ? "Supplier" : "Buyer"}</p>
+            <p className="text-sm font-medium text-sidebar-foreground">
+              {isAuthenticated && user ? user.username : "Guest"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {isAuthenticated && user ? (user.user_type === 'supplier' ? 'Supplier' : 'Buyer') : "Not signed in"}
+            </p>
           </div>
         </div>
       </div>

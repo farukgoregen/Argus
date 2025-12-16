@@ -18,6 +18,7 @@ from .schemas import (
     MessageSchema,
     ErrorSchema,
 )
+from .image_utils import convert_to_webp, validate_image_file
 
 logger = logging.getLogger(__name__)
 
@@ -104,19 +105,18 @@ def update_buyer_profile(
     # Update logo if provided
     if logo is not None:
         # Validate file type
-        allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-        if logo.content_type not in allowed_types:
-            raise HttpError(400, f"Invalid file type. Allowed types: {', '.join(allowed_types)}")
+        is_valid, error_msg = validate_image_file(logo)
+        if not is_valid:
+            raise HttpError(400, error_msg)
         
-        # Validate file size (max 5MB)
-        max_size = 5 * 1024 * 1024  # 5MB
-        if logo.size > max_size:
-            raise HttpError(400, "Logo file size must be less than 5MB")
-        
-        # Save the logo
-        profile.logo.save(logo.name, logo, save=False)
-        updated = True
-        logger.info(f"Updated logo for buyer: {user.email}")
+        # Convert to WebP format
+        try:
+            webp_logo = convert_to_webp(logo)
+            profile.logo.save(webp_logo.name, webp_logo, save=False)
+            updated = True
+            logger.info(f"Updated logo (converted to WebP) for buyer: {user.email}")
+        except ValueError as e:
+            raise HttpError(400, str(e))
     
     if updated:
         profile.save()
@@ -244,19 +244,18 @@ def update_supplier_profile(
     # Update logo if provided
     if logo is not None:
         # Validate file type
-        allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-        if logo.content_type not in allowed_types:
-            raise HttpError(400, f"Invalid file type. Allowed types: {', '.join(allowed_types)}")
+        is_valid, error_msg = validate_image_file(logo)
+        if not is_valid:
+            raise HttpError(400, error_msg)
         
-        # Validate file size (max 5MB)
-        max_size = 5 * 1024 * 1024  # 5MB
-        if logo.size > max_size:
-            raise HttpError(400, "Logo file size must be less than 5MB")
-        
-        # Save the logo
-        profile.logo.save(logo.name, logo, save=False)
-        updated = True
-        logger.info(f"Updated logo for supplier: {user.email}")
+        # Convert to WebP format
+        try:
+            webp_logo = convert_to_webp(logo)
+            profile.logo.save(webp_logo.name, webp_logo, save=False)
+            updated = True
+            logger.info(f"Updated logo (converted to WebP) for supplier: {user.email}")
+        except ValueError as e:
+            raise HttpError(400, str(e))
     
     if updated:
         profile.save()

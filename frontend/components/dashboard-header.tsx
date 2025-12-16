@@ -1,6 +1,13 @@
 "use client"
 
-import { Bell, User } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
+import { Bell, User, LogOut, Settings, CreditCard, Sun, Moon, Monitor, Home } from "lucide-react"
+import { toast } from "sonner"
+import { useState, useEffect } from "react"
+
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -11,15 +18,82 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/contexts/auth-context"
 
 export function DashboardHeader() {
+  const router = useRouter()
+  const { theme, setTheme } = useTheme()
+  const { user, logout, isAuthenticated } = useAuth()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleLogout = async () => {
+    await logout()
+    toast.success("Logged out successfully")
+    router.push("/")
+  }
+
+  // Theme icon
+  const ThemeIcon = () => {
+    if (!mounted) return <Monitor className="h-4 w-4" />
+    if (theme === "dark") return <Moon className="h-4 w-4" />
+    if (theme === "light") return <Sun className="h-4 w-4" />
+    return <Monitor className="h-4 w-4" />
+  }
+
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
       <div className="flex items-center gap-4">
+        {/* Logo - Back to Landing */}
+        <Link 
+          href="/" 
+          className="flex items-center gap-3 transition-opacity hover:opacity-80"
+        >
+          <Image
+            src="/logo.webp"
+            alt="Argus Logo"
+            width={140}
+            height={40}
+            className="h-10 w-auto"
+          />
+          <span className="text-xl font-bold text-foreground">Argus</span>
+        </Link>
+        <div className="h-4 w-px bg-border" />
         <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              aria-label="Toggle theme"
+            >
+              <ThemeIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setTheme("light")}>
+              <Sun className="mr-2 h-4 w-4" />
+              Light
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
+              <Moon className="mr-2 h-4 w-4" />
+              Dark
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
+              <Monitor className="mr-2 h-4 w-4" />
+              System
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -62,13 +136,34 @@ export function DashboardHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {isAuthenticated && user ? (
+                <div>
+                  <p>{user.username}</p>
+                  <p className="text-xs font-normal text-muted-foreground">{user.email}</p>
+                </div>
+              ) : (
+                "My Account"
+              )}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Billing</DropdownMenuItem>
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Billing
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Log out</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

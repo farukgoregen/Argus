@@ -1,12 +1,54 @@
-import { Package, Users, AlertCircle, FileText, LinkIcon, Shield, Bell } from "lucide-react"
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Package, Users, AlertCircle, FileText, LinkIcon, Shield, Bell, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { mockRFQs } from "@/lib/mock-data"
+import { productService } from "@/lib/services/product-service"
+import { useAuth } from "@/contexts/auth-context"
+import type { Product, PaginatedProductList } from "@/lib/api-types"
 
 export default function SupplierDashboardPage() {
+  const { isAuthenticated, user } = useAuth()
+  const [criticalStock, setCriticalStock] = useState<Product[]>([])
+  const [productStats, setProductStats] = useState({ total: 0, active: 0 })
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (isAuthenticated && user?.user_type === 'supplier') {
+      loadData()
+    }
+  }, [isAuthenticated, user])
+
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      // Load critical stock products
+      const criticalResponse = await productService.getCriticalStock()
+      if (criticalResponse.data) {
+        setCriticalStock(criticalResponse.data)
+      }
+
+      // Load product stats
+      const statsResponse = await productService.listProducts({ page: 1, page_size: 1 })
+      if (statsResponse.data) {
+        setProductStats({
+          total: statsResponse.data.total,
+          active: statsResponse.data.total, // Will be refined with is_active filter
+        })
+      }
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="p-6">
       {/* Summary Cards */}
@@ -32,8 +74,14 @@ export default function SupplierDashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-destructive">3</p>
-            <p className="text-xs text-muted-foreground">Items below minimum</p>
+            {isLoading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-destructive">{criticalStock.length}</p>
+                <p className="text-xs text-muted-foreground">Items below minimum</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -46,7 +94,7 @@ export default function SupplierDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">12</p>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <p className="text-xs text-muted-foreground">This month (demo)</p>
           </CardContent>
         </Card>
 
@@ -59,7 +107,7 @@ export default function SupplierDashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-accent">9.2</p>
-            <p className="text-xs text-muted-foreground">Excellent rating</p>
+            <p className="text-xs text-muted-foreground">Excellent rating (demo)</p>
           </CardContent>
         </Card>
       </div>
@@ -154,12 +202,16 @@ export default function SupplierDashboardPage() {
                   <p className="mt-1 text-sm text-muted-foreground">
                     Manage your product listings, inventory levels, and pricing
                   </p>
-                  <Button size="sm" variant="outline" className="mt-2 bg-transparent">
-                    Manage Products
+                  <Button size="sm" variant="outline" className="mt-2 bg-transparent" asChild>
+                    <Link href="/dashboard/supplier/products">Manage Products</Link>
                   </Button>
                 </div>
               </div>
-              <Badge className="bg-secondary text-secondary-foreground">45 Active</Badge>
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <Badge className="bg-secondary text-secondary-foreground">{productStats.total} Products</Badge>
+              )}
             </div>
           </div>
         </CardContent>

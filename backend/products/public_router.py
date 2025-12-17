@@ -3,6 +3,8 @@ Public Product API router for Django Ninja.
 
 This module provides public (no authentication required) buyer-facing endpoints:
 - Product search across all sellers or filtered by seller
+- Product detail view
+- Product offers (same product from different sellers)
 """
 import math
 from typing import Optional, List
@@ -22,6 +24,7 @@ from .schemas import (
 from .public_schemas import (
     PublicProductListItemSchema,
     PaginatedPublicProductListSchema,
+    PublicProductDetailSchema,
 )
 
 router = Router(tags=["Public Products"])
@@ -115,6 +118,113 @@ def search_products(
         .select_related('owner')
         .prefetch_related('photos')
         .order_by('search_rank', 'product_name', '-updated_at')
+    )
+    
+    # Get total count
+    total = queryset.count()
+    
+    # Paginate
+    offset = (page - 1) * page_size
+    products = queryset[offset:offset + page_size]
+    
+    pages = math.ceil(total / page_size) if total > 0 else 1
+    
+    return {
+        "items": list(products),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
+    }
+
+
+@router.get(
+    "/{product_id}",
+    response={200: PublicProductDetailSchema, 404: ErrorSchema},
+    summary="Get product detail (public)",
+    description="Get detailed information about a specific product. No authentication required.",
+)
+def get_product_detail(request, product_id: UUID):
+    """
+    Public product detail endpoint for buyers.
+    
+    Returns detailed product information including:
+    - All product fields
+    - Seller information (id, display_name)
+    - All photos
+    - Stock status and quantity
+    - Created and updated timestamps
+    
+    Only active products are accessible.
+    """
+    try:
+        product = (
+            Product.objects
+            .filter(id=product_id, is_active=True)
+            .select_related('owner', 'owner__supplier_profile')
+            .prefetch_related('photos')
+            .first()
+        )
+        
+        if not product:
+            raise HttpError(404, "Product not found")
+        
+        return product
+    except Exception as e:
+        if isinstance(e, HttpError):
+            raise
+        raise HttpError(404, "Product not found")
+
+
+@router.get(
+    "/{product_id}/offers",
+    response={200: PaginatedPublicProductListSchema, 404: ErrorSchema},
+    summary="Get offers for same product (public)",
+    description="Get all offers for the same product (same name and category) from different sellers.",
+)
+def get_product_offers(
+    request,
+    product_id: UUID,
+    page: int = Query(1, ge=1, description="Page number (default: 1)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page (default: 20, max: 100)"),
+):
+    """
+    Get all offers for the same product from different sellers.
+    
+    "Same product" is defined as products with:
+    - Exact match on product_name (case-insensitive)
+    - Exact match on product_category (case-insensitive)
+    
+    Results are sorted by unit_price ascending (cheapest first).
+    
+    **Note:** This endpoint finds all active products matching the base product's
+    name and category, effectively showing all sellers offering the "same" product.
+    """
+    # First get the base product
+    base_product = (
+        Product.objects
+        .filter(id=product_id, is_active=True)
+        .first()
+    )
+    
+    if not base_product:
+        raise HttpError(404, "Product not found")
+    
+    # Normalize: strip and lowercase for comparison
+    normalized_name = base_product.product_name.strip().lower()
+    normalized_category = base_product.product_category.strip().lower()
+    
+    # Find all products with exact match on name AND category (case-insensitive)
+    queryset = (
+        Product.objects
+        .filter(
+            is_active=True,
+            product_name__iexact=base_product.product_name.strip(),
+            product_category__iexact=base_product.product_category.strip(),
+        )
+        .select_related('owner', 'owner__supplier_profile')
+        .prefetch_related('photos')
+        .order_by('unit_price', '-updated_at')  # Cheapest first
     )
     
     # Get total count

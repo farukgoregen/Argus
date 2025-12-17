@@ -15,6 +15,7 @@ B2B Supplier-Buyer Platform API built with Django and Django Ninja.
   - [Products (Supplier)](#products-api-supplier)
   - [Public Products (Buyer)](#public-products-api)
   - [Home Feed](#home-feed-api)
+  - [Watchlist](#watchlist-api)
   - [AI Chat](#ai-api)
 - [Error Handling](#error-handling)
 - [Configuration](#configuration)
@@ -750,6 +751,125 @@ Get the homepage feed for authenticated users.
       ]
     }
   ]
+}
+```
+
+---
+
+### Watchlist API
+
+Base path: `/api/watchlist`
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/watchlist` | Yes | Get paginated watchlist items |
+| POST | `/api/watchlist` | Yes | Add product to watchlist |
+| DELETE | `/api/watchlist/{product_id}` | Yes | Remove product from watchlist |
+| GET | `/api/watchlist/ids` | Yes | Get all product IDs in watchlist |
+
+---
+
+#### GET `/api/watchlist`
+Get paginated list of products in user's watchlist.
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | integer | 1 | Page number |
+| page_size | integer | 20 | Items per page (max: 50) |
+
+**Response (200):**
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "product": {
+        "id": "uuid",
+        "product_name": "Product Name",
+        "product_category": "Category",
+        "description_preview": "First 120 chars...",
+        "photos": [{"id": "uuid", "url": "/media/..."}],
+        "unit_price": "99.99",
+        "sell_quantity": 1,
+        "stock_quantity": 50,
+        "stock_status": "in_stock",
+        "seller": {
+          "id": "uuid",
+          "display_name": "Company Name"
+        }
+      },
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total": 5,
+    "total_pages": 1,
+    "has_next": false,
+    "has_prev": false
+  }
+}
+```
+
+---
+
+#### POST `/api/watchlist`
+Add a product to the user's watchlist.
+
+**Request Body:**
+```json
+{
+  "product_id": "uuid"
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": "uuid",
+  "product": {...},
+  "created_at": "2024-01-01T00:00:00Z"
+}
+```
+
+**Response (409):** Product already in watchlist
+```json
+{
+  "detail": "Product already in watchlist"
+}
+```
+
+---
+
+#### DELETE `/api/watchlist/{product_id}`
+Remove a product from the user's watchlist.
+
+**Response (200):**
+```json
+{
+  "success": true
+}
+```
+
+**Response (404):** Product not in watchlist
+```json
+{
+  "detail": "Item not found in watchlist"
+}
+```
+
+---
+
+#### GET `/api/watchlist/ids`
+Get all product IDs in the user's watchlist (for quick checks).
+
+**Response (200):**
+```json
+{
+  "product_ids": ["uuid1", "uuid2", "uuid3"]
 }
 ```
 

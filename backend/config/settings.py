@@ -60,14 +60,26 @@ INSTALLED_APPS = [
 # Product settings
 PRODUCT_LOW_STOCK_THRESHOLD = int(os.getenv('PRODUCT_LOW_STOCK_THRESHOLD', '10'))
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://redis:6379/1"),
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "TIMEOUT": 60,  # default TTL (istersen)
+# Cache settings - use Redis if available, fallback to local memory cache
+REDIS_URL = os.getenv("REDIS_URL", "")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "TIMEOUT": 60,
+        }
     }
-} 
+else:
+    # Fallback to local memory cache for development without Redis
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-snowflake",
+            "TIMEOUT": 60,
+        }
+    } 
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

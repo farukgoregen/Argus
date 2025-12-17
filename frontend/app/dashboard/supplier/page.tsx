@@ -253,11 +253,11 @@ export default function SupplierDashboardPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Budget: </span>
-                      <span className="font-medium">${rfq.budget.toLocaleString()}</span>
+                      <span className="font-medium">${rfq.budget.toLocaleString('en-US')}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Deadline: </span>
-                      <span className="font-medium">{new Date(rfq.deadline).toLocaleDateString()}</span>
+                      <span className="font-medium">{new Date(rfq.deadline).toLocaleDateString('en-US')}</span>
                     </div>
                   </div>
                 </div>

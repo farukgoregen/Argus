@@ -3,6 +3,7 @@ Home feed models for the B2B Supplier-Buyer Platform.
 
 This module contains:
 - SearchEvent: Tracks user search history for the "recent searches" feature
+- WatchlistItem: Tracks products users are watching for price alerts
 """
 import uuid
 from django.db import models
@@ -103,3 +104,86 @@ class SearchEvent(models.Model):
                     break
         
         return result
+
+
+class WatchlistItem(models.Model):
+    """
+    WatchlistItem model for tracking products users are watching.
+    
+    Allows users to track products and receive price alerts.
+    Each user can only watch a product once (unique constraint).
+    """
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='watchlist_items',
+        help_text='The user who is watching this product'
+    )
+    product = models.ForeignKey(
+        'products.Product',
+        on_delete=models.CASCADE,
+        related_name='watchlist_entries',
+        help_text='The product being watched'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'watchlist item'
+        verbose_name_plural = 'watchlist items'
+        ordering = ['-created_at']
+        # Prevent duplicate entries: a user can only watch a product once
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'product'],
+                name='unique_user_product_watchlist'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['user', '-created_at'], name='watchlist_user_created_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.email} watching {self.product.product_name}"
+    
+    @classmethod
+    def add_to_watchlist(cls, user, product):
+        """
+        Add a product to user's watchlist.
+        
+        Returns (item, created) tuple. If item already exists, returns existing item.
+        """
+        item, created = cls.objects.get_or_create(
+            user=user,
+            product=product
+        )
+        return item, created
+    
+    @classmethod
+    def remove_from_watchlist(cls, user, product_id) -> bool:
+        """
+        Remove a product from user's watchlist.
+        
+        Returns True if item was deleted, False if not found.
+        """
+        deleted_count, _ = cls.objects.filter(
+            user=user,
+            product_id=product_id
+        ).delete()
+        return deleted_count > 0
+    
+    @classmethod
+    def is_in_watchlist(cls, user, product_id) -> bool:
+        """Check if a product is in user's watchlist."""
+        return cls.objects.filter(user=user, product_id=product_id).exists()
+    
+    @classmethod
+    def get_product_ids_for_user(cls, user) -> list:
+        """Get list of product IDs in user's watchlist."""
+        return list(
+            cls.objects.filter(user=user).values_list('product_id', flat=True)
+        )

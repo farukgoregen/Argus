@@ -23,6 +23,7 @@ from ai.api_router import router as ai_router
 from products.api_router import router as products_router
 from products.public_router import router as public_products_router
 from home.api_router import router as home_router
+from home.watchlist_router import router as watchlist_router
 
 
 # Custom ORJSON Renderer for better performance
@@ -210,6 +211,9 @@ api.add_router("/public/products", public_products_router, tags=["Public Product
 
 # Home feed router (authentication required)
 api.add_router("/home-feed", home_router, tags=["Home"])
+
+# Watchlist router (authentication required)
+api.add_router("/watchlist", watchlist_router, tags=["Watchlist"])
 
 
 # ============================================

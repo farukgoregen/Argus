@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Plus, Search, Package, Edit, Trash2, Loader2, MoreHorizontal, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 
@@ -295,9 +296,11 @@ export default function SupplierProductsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/supplier/products/${product.id}/edit`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleToggleActive(product.id, product.is_active)}>
                             {product.is_active ? (

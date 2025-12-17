@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Bell, User, LogOut, Settings, CreditCard, Sun, Moon, Monitor, Home } from "lucide-react"
@@ -47,22 +46,20 @@ export function DashboardHeader() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
       <div className="flex items-center gap-4">
-        {/* Logo - Back to Landing */}
-        <Link 
-          href="/" 
-          className="flex items-center gap-3 transition-opacity hover:opacity-80"
-        >
-          <Image
-            src="/logo.webp"
-            alt="Argus Logo"
-            width={140}
-            height={40}
-            className="h-10 w-auto"
-          />
-          <span className="text-xl font-bold text-foreground">Argus</span>
-        </Link>
-        <div className="h-4 w-px bg-border" />
+        {/* Dashboard Title */}
         <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
+        <div className="h-4 w-px bg-border" />
+        {/* Home Button - Navigate to Landing */}
+        <Link href="/">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">Home</span>
+          </Button>
+        </Link>
       </div>
 
       <div className="flex items-center gap-2">

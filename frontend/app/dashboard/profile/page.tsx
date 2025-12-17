@@ -76,6 +76,7 @@ export default function ProfileEditPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoTimestamp, setLogoTimestamp] = useState<number>(Date.now()); // For cache busting
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Determine user type and fields
@@ -267,10 +268,14 @@ export default function ProfileEditPage() {
         setProfile(response.data);
         setIsDirty(false);
         
-        // Clear logo selection after successful save
+        // Clear logo selection and refresh timestamp after successful save
         if (logoFile) {
           handleRemoveLogo();
+          setLogoTimestamp(Date.now()); // Bust browser cache for new logo
         }
+        
+        // Notify sidebar to refresh profile logo
+        window.dispatchEvent(new CustomEvent('profile-updated'));
         
         toast.success('Profile updated successfully!');
       }
@@ -282,11 +287,15 @@ export default function ProfileEditPage() {
     }
   };
   
-  // Get current logo URL
+  // Get current logo URL with cache busting
   const currentLogoUrl = profile?.logo 
-    ? profile.logo.startsWith('http') 
-      ? profile.logo 
-      : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${profile.logo}`
+    ? (() => {
+        const baseUrl = profile.logo.startsWith('http') 
+          ? profile.logo 
+          : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${profile.logo}`;
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${separator}t=${logoTimestamp}`;
+      })()
     : null;
   
   // Loading state

@@ -17,7 +17,9 @@ The Argus platform consists of a Django Ninja backend and a Next.js frontend. Th
 | **Logout** | `POST /api/auth/logout` | Token invalidation |
 | **Current User** | `GET /api/auth/me` | Get authenticated user info |
 | **Token Refresh** | `POST /api/auth/refresh` | Auto-refresh access tokens |
+| **Dashboard Home** (`/dashboard`) | `GET /api/home-feed` | Recent searches chips + paginated product grid (20/page) |
 | **Product Search** (`/dashboard/search`) | `GET /api/public/products/search` | Public product search for buyers |
+| **Product Detail** (`/dashboard/product/[id]`) | `GET /api/home-feed` | Single product view (fetches from home feed) |
 | **AI Assistant** (widget) | `POST /api/ai/chat` | AI-powered chat assistant |
 | **Supplier Products** (`/dashboard/supplier/products`) | `GET/POST/PATCH/DELETE /api/products/*` | Full CRUD for supplier products |
 | **Supplier Dashboard** (`/dashboard/supplier`) | `GET /api/products/critical-stock` | Critical stock alerts |
@@ -38,9 +40,7 @@ The Argus platform consists of a Django Ninja backend and a Next.js frontend. Th
 | **Currency Ticker** | No backend endpoint | Uses `mockCurrencies` |
 | **Price Trend Chart** | No backend endpoint | Uses `mockPriceTrends` |
 | **AI Insights Cards** | No backend endpoint | Uses `mockAIInsights` |
-| **Recent Searches** | No home-feed auth redirect | Uses `mockRecentSearches` |
 | **Watchlist** (`/dashboard/watchlist`) | No watchlist API | Uses `mockWatchlist` |
-| **Product Detail** (`/dashboard/product/[id]`) | No single product public endpoint | Uses `mockProducts`, `mockOffers` |
 | **Offers Table** | No offers API | Uses `mockOffers` |
 | **Supplier RFQs** | No RFQ API | Uses `mockRFQs` |
 | **Trust Scores** | No trust score API | Static demo values |
@@ -413,3 +413,90 @@ Profile logos are always stored as WebP format for optimal performance. The conv
 - 403: Shows "Access denied" message (wrong user type)
 - 400: Shows validation error from backend
 - Network errors: Shows generic error toast
+
+---
+
+## Home Feed & Product Display
+
+The dashboard home page and product-related pages now use the real backend API.
+
+### Endpoints Used
+
+| Feature | Endpoint | Description |
+|---------|----------|-------------|
+| Dashboard Home | `GET /api/home-feed` | Paginated product grid with recent searches |
+| Search Default View | `GET /api/home-feed` | Shows all products when no search query |
+| Product Search | `GET /api/public/products/search` | Public search with query parameter |
+| Product Detail | `GET /api/home-feed` (with page_size=100) | Finds product by ID from feed |
+
+### Home Feed Response Structure
+
+```typescript
+interface HomeFeedResponse {
+  sections: HomeFeedSection[];
+}
+
+interface HomeFeedSection {
+  key: 'recent_searches' | 'all_products';
+  title: string;
+  data: RecentSearchItem[] | AllProductsData;
+}
+
+interface AllProductsData {
+  items: ProductCard[];
+  pagination: HomeFeedPagination;
+}
+
+interface HomeFeedPagination {
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
+}
+```
+
+### Components Updated
+
+**1. Recent Searches Component (`components/recent-searches.tsx`)**
+- Fetches from `GET /api/home-feed?page=1&page_size=20`
+- Displays recent search chips from `recent_searches` section
+- Displays paginated product grid from `all_products` section
+- Pagination controls: Previous/Next buttons with page info
+- Loading skeletons during fetch
+- Error state with retry option
+
+**2. Search Page (`app/dashboard/search/page.tsx`)**
+- Default view: Fetches from `GET /api/home-feed` with pagination
+- Search view: Fetches from `GET /api/public/products/search?q=<query>`
+- Separate pagination for default vs search modes
+
+**3. Product Detail Page (`app/dashboard/product/[id]/page.tsx`)**
+- Fetches from `GET /api/home-feed?page_size=100`
+- Searches for product by ID in the returned items
+- Displays product info, seller details, and photos
+- Note: No dedicated single-product endpoint exists
+
+### Photo URL Handling
+
+Product photos are stored with relative paths. The `getPhotoUrl` helper constructs full URLs:
+
+```typescript
+function getPhotoUrl(url: string | undefined): string {
+  if (!url) return '/placeholder.svg';
+  if (url.startsWith('http')) return url;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const apiBase = baseUrl.replace(/\/api\/?$/, '');
+  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+```
+
+### Mock Data Removed
+
+The following mock data imports have been removed from production code:
+- `mockProducts` from `lib/mock-data.ts`
+- `mockRecentSearches` from `lib/mock-data.ts`
+- `mockOffers` from `lib/mock-data.ts`
+
+**Note:** Mock data files are retained for reference and testing purposes.

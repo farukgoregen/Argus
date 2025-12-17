@@ -148,3 +148,44 @@ class HomeFeedResponseSchema(Schema):
     - all_products: Paginated list of products
     """
     sections: List[dict]  # Will contain RecentSearchesSectionSchema and AllProductsSectionSchema
+
+
+# ==============================================
+# Watchlist Schemas
+# ==============================================
+
+class WatchlistProductSchema(Schema):
+    """Product summary for watchlist items."""
+    id: UUID
+    product_name: str
+    product_category: str
+    description_preview: Optional[str] = None
+    photos: List[dict] = []
+    unit_price: Decimal
+    stock_quantity: int
+    stock_status: str
+    seller: SellerInfoSchema
+    updated_at: datetime
+
+
+class WatchlistItemSchema(Schema):
+    """Schema for a single watchlist item."""
+    id: UUID
+    created_at: datetime
+    product: WatchlistProductSchema
+
+
+class WatchlistListResponseSchema(Schema):
+    """Response schema for watchlist list endpoint."""
+    items: List[WatchlistItemSchema]
+    pagination: PaginationInfoSchema
+
+
+class WatchlistAddRequestSchema(Schema):
+    """Request schema for adding to watchlist."""
+    product_id: UUID
+
+
+class WatchlistIdsResponseSchema(Schema):
+    """Response schema for watchlist IDs endpoint."""
+    product_ids: List[UUID]

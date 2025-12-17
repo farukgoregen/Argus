@@ -1,31 +1,152 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { Search, SlidersHorizontal, X, Loader2 } from "lucide-react"
+import { Search, SlidersHorizontal, X, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { publicProductService } from "@/lib/services/public-product-service"
-import type { PublicProductListItem } from "@/lib/api-types"
+import { homeFeedService } from "@/lib/services/home-feed-service"
+import { watchlistService } from "@/lib/services/watchlist-service"
+import type { PublicProductListItem, ProductCard, AllProductsSection } from "@/lib/api-types"
 import { ProductFilters } from "@/components/product-filters"
 import { AISearchSummary } from "@/components/ai-search-summary"
-import { mockProducts } from "@/lib/mock-data"
+import { GroupedProductCard } from "@/components/grouped-product-card"
+import { 
+  groupProductCards, 
+  groupPublicProducts, 
+  type ProductGroup,
+} from "@/lib/product-grouping"
+
+// Over-fetch configuration
+const GROUPS_PER_PAGE = 20
+const BACKEND_PAGE_SIZE = 60
+const MAX_EXTRA_FETCHES = 5
 
 export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [products, setProducts] = useState<PublicProductListItem[]>([])
+  
+  // Search results (raw items for grouping)
+  const [searchProducts, setSearchProducts] = useState<PublicProductListItem[]>([])
+  const [searchGroups, setSearchGroups] = useState<ProductGroup[]>([])
+  const [searchPage, setSearchPage] = useState(1)
+  const [searchHasMore, setSearchHasMore] = useState(false)
+  const [searchTotalGroups, setSearchTotalGroups] = useState(0)
+  
+  // Default products (home feed, raw items for grouping)
+  const [defaultProducts, setDefaultProducts] = useState<ProductCard[]>([])
+  const [defaultGroups, setDefaultGroups] = useState<ProductGroup[]>([])
+  const [defaultPage, setDefaultPage] = useState(1)
+  const [defaultHasMore, setDefaultHasMore] = useState(false)
+  const [defaultTotalGroups, setDefaultTotalGroups] = useState(0)
+  
+  // UI state
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingDefault, setIsLoadingDefault] = useState(true)
   const [hasSearched, setHasSearched] = useState(false)
-  const [total, setTotal] = useState(0)
+  const [watchlistIds, setWatchlistIds] = useState<Set<string>>(new Set())
 
-  const searchProducts = useCallback(async (query: string) => {
+  // Fetch watchlist IDs on mount
+  useEffect(() => {
+    async function fetchWatchlistIds() {
+      try {
+        const response = await watchlistService.getWatchlistIds()
+        if (response.data) {
+          setWatchlistIds(new Set(response.data.product_ids))
+        }
+      } catch (err) {
+        console.error('Error fetching watchlist IDs:', err)
+      }
+    }
+    fetchWatchlistIds()
+  }, [])
+
+  // Watchlist toggle handler
+  const handleWatchlistToggle = useCallback((productId: string, inWatchlist: boolean) => {
+    setWatchlistIds(prev => {
+      const next = new Set(prev)
+      if (inWatchlist) next.add(productId)
+      else next.delete(productId)
+      return next
+    })
+  }, [])
+
+  // Fetch default products with over-fetch grouping
+  const fetchDefaultProducts = useCallback(async (page: number) => {
+    setIsLoadingDefault(true)
+    try {
+      const allItems: ProductCard[] = []
+      let backendPage = 1
+      let hasMore = true
+      let fetchCount = 0
+      let backendTotal = 0
+
+      // Over-fetch until we have enough groups
+      while (hasMore && fetchCount < MAX_EXTRA_FETCHES) {
+        const response = await homeFeedService.getHomeFeed({
+          page: backendPage,
+          page_size: BACKEND_PAGE_SIZE,
+        })
+
+        if (response.data) {
+          const allProductsSection = response.data.sections.find(
+            (s): s is AllProductsSection => s.key === 'all_products'
+          )
+          if (allProductsSection) {
+            allItems.push(...allProductsSection.items)
+            hasMore = allProductsSection.pagination.has_next
+            backendTotal = allProductsSection.pagination.total
+          } else {
+            hasMore = false
+          }
+        } else {
+          hasMore = false
+        }
+
+        backendPage++
+        fetchCount++
+
+        // Check if we have enough groups
+        const groups = groupProductCards(allItems)
+        const targetCount = page * GROUPS_PER_PAGE
+        if (groups.length >= targetCount || !hasMore) {
+          break
+        }
+      }
+
+      // Store all raw items for re-grouping on page change
+      setDefaultProducts(allItems)
+
+      // Group and paginate
+      const allGroups = groupProductCards(allItems)
+      const startIndex = (page - 1) * GROUPS_PER_PAGE
+      const endIndex = startIndex + GROUPS_PER_PAGE
+      const pageGroups = allGroups.slice(startIndex, endIndex)
+
+      setDefaultGroups(pageGroups)
+      setDefaultTotalGroups(allGroups.length)
+      setDefaultHasMore(endIndex < allGroups.length || hasMore)
+
+    } catch (err) {
+      console.error('Error fetching default products:', err)
+    } finally {
+      setIsLoadingDefault(false)
+    }
+  }, [])
+
+  // Fetch default products on mount and page change
+  useEffect(() => {
+    if (!hasSearched) {
+      fetchDefaultProducts(defaultPage)
+    }
+  }, [defaultPage, hasSearched, fetchDefaultProducts])
+
+  // Search with over-fetch grouping
+  const searchProductsFn = useCallback(async (query: string, page: number = 1) => {
     if (query.length < 2) {
-      setProducts([])
-      setTotal(0)
+      setSearchProducts([])
+      setSearchGroups([])
+      setSearchTotalGroups(0)
       setHasSearched(false)
       return
     }
@@ -34,22 +155,56 @@ export default function SearchPage() {
     setHasSearched(true)
 
     try {
-      const response = await publicProductService.searchProducts({
-        q: query,
-        page: 1,
-        page_size: 20,
-      })
+      const allItems: PublicProductListItem[] = []
+      let backendPage = 1
+      let hasMore = true
+      let fetchCount = 0
+      let backendTotal = 0
 
-      if (response.data) {
-        setProducts(response.data.items)
-        setTotal(response.data.total)
-      } else {
-        setProducts([])
-        setTotal(0)
+      // Over-fetch until we have enough groups
+      while (hasMore && fetchCount < MAX_EXTRA_FETCHES) {
+        const response = await publicProductService.searchProducts({
+          q: query,
+          page: backendPage,
+          page_size: BACKEND_PAGE_SIZE,
+        })
+
+        if (response.data) {
+          allItems.push(...response.data.items)
+          hasMore = response.data.page < response.data.pages
+          backendTotal = response.data.total
+        } else {
+          hasMore = false
+        }
+
+        backendPage++
+        fetchCount++
+
+        // Check if we have enough groups
+        const groups = groupPublicProducts(allItems)
+        const targetCount = page * GROUPS_PER_PAGE
+        if (groups.length >= targetCount || !hasMore) {
+          break
+        }
       }
+
+      // Store raw items
+      setSearchProducts(allItems)
+
+      // Group and paginate
+      const allGroups = groupPublicProducts(allItems)
+      const startIndex = (page - 1) * GROUPS_PER_PAGE
+      const endIndex = startIndex + GROUPS_PER_PAGE
+      const pageGroups = allGroups.slice(startIndex, endIndex)
+
+      setSearchGroups(pageGroups)
+      setSearchTotalGroups(allGroups.length)
+      setSearchHasMore(endIndex < allGroups.length || hasMore)
+
     } catch {
-      setProducts([])
-      setTotal(0)
+      setSearchProducts([])
+      setSearchGroups([])
+      setSearchTotalGroups(0)
     } finally {
       setIsLoading(false)
     }
@@ -59,23 +214,32 @@ export default function SearchPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.length >= 2) {
-        searchProducts(searchQuery)
+        searchProductsFn(searchQuery, searchPage)
+      } else if (searchQuery.length === 0) {
+        setHasSearched(false)
+        setSearchProducts([])
+        setSearchGroups([])
       }
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchQuery, searchProducts])
+  }, [searchQuery, searchPage, searchProductsFn])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.length >= 2) {
-      searchProducts(searchQuery)
+      setSearchPage(1)
+      searchProductsFn(searchQuery, 1)
     }
   }
 
-  // Show mock data when no search has been performed
-  const displayProducts = hasSearched ? products : []
-  const displayTotal = hasSearched ? total : mockProducts.length
+  // Calculate display counts
+  const displayTotal = hasSearched ? searchTotalGroups : defaultTotalGroups
+  const displayGroups = hasSearched ? searchGroups : defaultGroups
+  const currentPage = hasSearched ? searchPage : defaultPage
+  const totalPages = Math.ceil(displayTotal / GROUPS_PER_PAGE)
+  const hasNext = hasSearched ? searchHasMore : defaultHasMore
+  const hasPrev = currentPage > 1
 
   return (
     <div className="p-6">
@@ -97,7 +261,7 @@ export default function SearchPage() {
       </form>
 
       {/* AI Summary - only show when searching */}
-      {hasSearched && products.length > 0 && (
+      {hasSearched && searchGroups.length > 0 && (
         <div className="mb-6">
           <AISearchSummary />
         </div>
@@ -131,96 +295,91 @@ export default function SearchPage() {
         <div className="flex-1">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Searching..." : hasSearched ? `${total} products found` : `${mockProducts.length} products (showing demo data)`}
+              {isLoading || isLoadingDefault 
+                ? "Loading..." 
+                : `${displayTotal} unique products`
+              }
             </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => hasSearched ? setSearchPage(p => p - 1) : setDefaultPage(p => p - 1)}
+                  disabled={!hasPrev || isLoading || isLoadingDefault}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => hasSearched ? setSearchPage(p => p + 1) : setDefaultPage(p => p + 1)}
+                  disabled={!hasNext || isLoading || isLoadingDefault}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
-          {isLoading ? (
+          {isLoading || (isLoadingDefault && !hasSearched) ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : hasSearched && products.length === 0 ? (
+          ) : displayGroups.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Search className="mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="mb-2 text-lg font-semibold">No products found</h3>
-              <p className="text-muted-foreground">Try adjusting your search query</p>
-            </div>
-          ) : hasSearched ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
-                <Link key={product.id} href={`/dashboard/product/${product.id}`}>
-                  <Card className="group overflow-hidden border-border bg-card transition-all hover:border-primary hover:shadow-lg">
-                    <div className="aspect-square overflow-hidden bg-secondary">
-                      <Image
-                        src={product.main_photo_url || "/placeholder.svg"}
-                        alt={product.product_name}
-                        width={400}
-                        height={400}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <Badge className="mb-2 bg-secondary text-secondary-foreground" variant="secondary">
-                        {product.product_category}
-                      </Badge>
-                      <h3 className="mb-2 line-clamp-2 font-medium group-hover:text-primary">{product.product_name}</h3>
-                      <div className="mb-2 flex items-baseline gap-2">
-                        <span className="text-lg font-bold text-accent">${product.unit_price}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{product.seller_company_name}</span>
-                        <Badge 
-                          variant="secondary" 
-                          className={
-                            product.stock_status === 'in_stock' 
-                              ? 'bg-green-500/20 text-green-500' 
-                              : product.stock_status === 'low_stock'
-                              ? 'bg-yellow-500/20 text-yellow-500'
-                              : 'bg-red-500/20 text-red-500'
-                          }
-                        >
-                          {product.stock_status.replace('_', ' ')}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+              <h3 className="mb-2 text-lg font-semibold">
+                {hasSearched ? "No products found" : "No products available"}
+              </h3>
+              <p className="text-muted-foreground">
+                {hasSearched 
+                  ? "Try adjusting your search query" 
+                  : "Products will appear here once suppliers add them."
+                }
+              </p>
             </div>
           ) : (
-            // Show mock data when no search has been performed
+            // Grouped product grid
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {mockProducts.map((product) => (
-                <Link key={product.id} href={`/dashboard/product/${product.id}`}>
-                  <Card className="group overflow-hidden border-border bg-card transition-all hover:border-primary hover:shadow-lg">
-                    <div className="aspect-square overflow-hidden bg-secondary">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        width={400}
-                        height={400}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <Badge className="mb-2 bg-secondary text-secondary-foreground" variant="secondary">
-                        {product.category}
-                      </Badge>
-                      <h3 className="mb-2 line-clamp-2 font-medium group-hover:text-primary">{product.name}</h3>
-                      <div className="mb-2 flex items-baseline gap-2">
-                        <span className="text-lg font-bold text-accent">${product.minPrice}</span>
-                        <span className="text-sm text-muted-foreground">- ${product.maxPrice}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{product.suppliers.length} suppliers</span>
-                        <span className="flex items-center gap-1">
-                          ⭐ {product.rating} ({product.reviews})
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+              {displayGroups.map((group) => (
+                <GroupedProductCard
+                  key={group.key}
+                  group={group}
+                  watchlistIds={watchlistIds}
+                  onWatchlistToggle={handleWatchlistToggle}
+                />
               ))}
+            </div>
+          )}
+
+          {/* Bottom Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <Button
+                variant="outline"
+                onClick={() => hasSearched ? setSearchPage(p => p - 1) : setDefaultPage(p => p - 1)}
+                disabled={!hasPrev || isLoading || isLoadingDefault}
+              >
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => hasSearched ? setSearchPage(p => p + 1) : setDefaultPage(p => p + 1)}
+                disabled={!hasNext || isLoading || isLoadingDefault}
+              >
+                Next
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           )}
         </div>

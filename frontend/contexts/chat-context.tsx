@@ -6,7 +6,7 @@ import { chatService } from '@/lib/services/chat-service';
 import { tokenManager } from '@/lib/api-client';
 import type { ChatThread, ChatMessage } from '@/lib/api-types';
 
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost';
 
 // Reconnection settings
 const INITIAL_RECONNECT_DELAY = 1000;

@@ -16,8 +16,16 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
-# .env dosyasını otomatik yükle
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+# Load .env file - check parent directory first (Docker), then local
+# Docker mounts root .env, local dev uses backend/.env
+env_paths = [
+    os.path.join(os.path.dirname(__file__), '..', '..', '.env'),  # Root .env (Docker)
+    os.path.join(os.path.dirname(__file__), '..', '.env'),  # Backend .env (local dev)
+]
+for env_path in env_paths:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        break
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -139,12 +147,31 @@ else:
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Use PostgreSQL if POSTGRES_HOST is set, otherwise fallback to SQLite
+POSTGRES_HOST = os.getenv('POSTGRES_HOST')
+if POSTGRES_HOST:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'argus'),
+            'USER': os.getenv('POSTGRES_USER', 'argus'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+            'HOST': POSTGRES_HOST,
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
+            'CONN_MAX_AGE': 60,
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
+        }
     }
-}
+else:
+    # SQLite fallback for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -181,7 +208,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field

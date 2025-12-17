@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
-import { Bell, User, LogOut, Settings, CreditCard, Sun, Moon, Monitor, Home, MessageCircle } from "lucide-react"
+import { Bell, User, LogOut, Settings, Sun, Moon, Monitor, Home, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
 
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
 import { useChat } from "@/contexts/chat-context"
 
-export function DashboardHeader() {
+export function DashboardHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const { user, logout, isAuthenticated } = useAuth()
@@ -46,8 +46,18 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-6">
       <div className="flex items-center gap-4">
+        {/* Mobile menu button */}
+        {onMenuClick && (
+          <button
+            className="md:hidden mr-2 p-2 rounded hover:bg-accent"
+            onClick={onMenuClick}
+            aria-label="Open sidebar"
+          >
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+        )}
         {/* Dashboard Title */}
         <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
         <div className="h-4 w-px bg-border" />
@@ -155,17 +165,13 @@ export function DashboardHeader() {
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Billing
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">

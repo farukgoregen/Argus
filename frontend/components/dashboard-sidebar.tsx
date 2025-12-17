@@ -57,7 +57,7 @@ const supplierOnlyItems = [
   },
 ]
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const { user, isAuthenticated } = useAuth()
   const [profileLogo, setProfileLogo] = useState<string | null>(null)
@@ -123,12 +123,13 @@ export function DashboardSidebar() {
   }
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar">
+    <nav className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand Logo */}
-      <div className="flex h-16 items-center border-b border-sidebar-border px-4">
+      <div className="flex h-16 items-center border-b border-sidebar-border px-4 justify-between">
         <Link 
           href="/dashboard" 
           className="flex items-center gap-3 transition-opacity hover:opacity-80"
+          onClick={onClose}
         >
           <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-primary">
             <Image
@@ -147,10 +148,20 @@ export function DashboardSidebar() {
           </div>
           <span className="text-lg font-bold text-sidebar-foreground">Argus</span>
         </Link>
+        {/* Mobile close button */}
+        {onClose && (
+          <button
+            className="md:hidden ml-2 p-2 rounded hover:bg-sidebar-accent"
+            onClick={onClose}
+            aria-label="Close sidebar"
+          >
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-4">
+      <div className="flex-1 space-y-1 p-4">
         {items.map((item) => {
           // Check for exact match or if it's a parent route (for nested routes)
           const isActive = pathname === item.href || 
@@ -165,16 +176,17 @@ export function DashboardSidebar() {
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
+              onClick={onClose}
             >
               <item.icon className="h-5 w-5" />
               {item.title}
             </Link>
           )
         })}
-      </nav>
+      </div>
 
       {/* User Info */}
-      <div className="border-t border-sidebar-border p-4">
+      <div className="border-t border-sidebar-border p-4 mt-auto">
         <div className="flex items-center gap-3">
           <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary overflow-hidden ring-1 ring-border/50">
             {profileLogo ? (
@@ -202,6 +214,6 @@ export function DashboardSidebar() {
           </div>
         </div>
       </div>
-    </div>
+    </nav>
   )
 }

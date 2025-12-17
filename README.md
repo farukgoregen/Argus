@@ -6,6 +6,7 @@ B2B Supplier-Buyer Platform API built with Django and Django Ninja.
 
 - [Overview](#overview)
 - [Getting Started](#getting-started)
+- [Docker Deployment](#docker-deployment)
 - [API Documentation](#api-documentation)
 - [Authentication](#authentication)
 - [API Endpoints](#api-endpoints)
@@ -50,6 +51,98 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
+
+---
+
+## Docker Deployment
+
+The entire application stack can be deployed using Docker Compose with a single command.
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Copy `.env.example` to `.env` and configure your settings
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd Argusss
+
+# Copy environment file and configure
+cp .env.example .env
+# Edit .env with your settings (especially SECRET_KEY and passwords)
+
+# Build and start all services
+docker compose up --build
+
+# Or run in detached mode
+docker compose up --build -d
+```
+
+### Services
+
+The Docker setup includes:
+
+| Service    | Description                          | Internal Port | External Port |
+|------------|--------------------------------------|---------------|---------------|
+| nginx      | Reverse proxy & static file server   | 80            | 80            |
+| frontend   | Next.js application                  | 3000          | -             |
+| backend    | Django ASGI server (Daphne)          | 8000          | -             |
+| postgres   | PostgreSQL database                  | 5432          | -             |
+| redis      | Redis cache & channel layer          | 6379          | -             |
+
+### Accessing the Application
+
+Once running, access the application at:
+- **Frontend**: http://localhost
+- **API**: http://localhost/api/
+- **API Docs**: http://localhost/api/docs
+- **Admin**: http://localhost/admin/
+
+### Useful Commands
+
+```bash
+# View logs
+docker compose logs -f
+
+# View logs for specific service
+docker compose logs -f backend
+
+# Stop all services
+docker compose down
+
+# Stop and remove volumes (WARNING: deletes data)
+docker compose down -v
+
+# Rebuild a specific service
+docker compose up --build backend
+
+# Run Django management commands
+docker compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py shell
+
+# Access PostgreSQL
+docker compose exec postgres psql -U argus -d argus
+
+# Access Redis CLI
+docker compose exec redis redis-cli
+```
+
+### Environment Variables
+
+Key environment variables in `.env`:
+
+| Variable                | Description                      | Default Value                    |
+|-------------------------|----------------------------------|----------------------------------|
+| `DEBUG`                 | Django debug mode                | `False`                          |
+| `SECRET_KEY`            | Django secret key                | (change in production!)          |
+| `POSTGRES_DB`           | Database name                    | `argus`                          |
+| `POSTGRES_USER`         | Database user                    | `argus`                          |
+| `POSTGRES_PASSWORD`     | Database password                | (change this!)                   |
+| `GEMINI_API_KEY`        | Google Gemini API key            | -                                |
+| `NEXT_PUBLIC_API_URL`   | Frontend API URL                 | `http://localhost/api`           |
+| `NEXT_PUBLIC_WS_URL`    | Frontend WebSocket URL           | `ws://localhost` (Docker) or `ws://localhost:8000` (local dev) |
 
 ---
 

@@ -145,6 +145,22 @@ frontend/.env.test.local
 frontend/.env.production.local
 
 # ================================
+# Docker
+# ================================
+.dockerignore
+Dockerfile*
+docker-compose*
+.docker/
+nginx/
+
+# Ignore local volumes (if any)
+volumes/
+
+# Ignore .env (but not .env.example)
+.env
+!.env.example
+
+# ================================
 # IDE / Editor
 # ================================
 

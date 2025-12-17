@@ -24,6 +24,7 @@ from products.api_router import router as products_router
 from products.public_router import router as public_products_router
 from home.api_router import router as home_router
 from home.watchlist_router import router as watchlist_router
+from home.market_router import router as market_router
 from chat.api_router import router as chat_router
 
 
@@ -215,6 +216,9 @@ api.add_router("/home-feed", home_router, tags=["Home"])
 
 # Watchlist router (authentication required)
 api.add_router("/watchlist", watchlist_router, tags=["Watchlist"])
+
+# Market router (no authentication required)
+api.add_router("/market", market_router, tags=["Market"])
 
 # Chat router (authentication required)
 api.add_router("/chat", chat_router, tags=["Chat"])

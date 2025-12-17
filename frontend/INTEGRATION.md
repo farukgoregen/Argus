@@ -24,12 +24,15 @@ The Argus platform consists of a Django Ninja backend and a Next.js frontend. Th
 | **Supplier Products** (`/dashboard/supplier/products`) | `GET/POST/PATCH/DELETE /api/products/*` | Full CRUD for supplier products |
 | **Supplier Dashboard** (`/dashboard/supplier`) | `GET /api/products/critical-stock` | Critical stock alerts |
 | **Profile Edit** (`/dashboard/profile`) | `GET/PATCH /api/profile/{buyer\|supplier}` | View and update buyer/supplier profile |
+| **Real-time Chat** (`/dashboard/chat`) | `GET/POST /api/chat/*` + WebSocket | 1:1 buyer-supplier messaging |
+| **Chat Notifications** | WebSocket `/ws/chat/threads/` | Real-time unread counts and new message alerts |
+| **Contact Supplier** (Product Detail) | `POST /api/chat/threads` | Start chat about a specific product |
 
 ### ⚠️ Partially Connected
 
 | Page/Feature | Status | Notes |
 |--------------|--------|-------|
-| **Dashboard Header** | Auth only | Shows real user info, notifications remain mocked |
+| **Dashboard Header** | Auth + Chat | Shows real user info, chat badge with live unread count, general notifications mocked |
 | **Dashboard Sidebar** | Auth only | Shows real user type and initials |
 | **Register Wizard** (`/register`) | Auth only | Step 1 & backend call connected; Package selection & Payment are frontend-only |
 
@@ -40,7 +43,6 @@ The Argus platform consists of a Django Ninja backend and a Next.js frontend. Th
 | **Currency Ticker** | No backend endpoint | Uses `mockCurrencies` |
 | **Price Trend Chart** | No backend endpoint | Uses `mockPriceTrends` |
 | **AI Insights Cards** | No backend endpoint | Uses `mockAIInsights` |
-| **Watchlist** (`/dashboard/watchlist`) | No watchlist API | Uses `mockWatchlist` |
 | **Offers Table** | No offers API | Uses `mockOffers` |
 | **Supplier RFQs** | No RFQ API | Uses `mockRFQs` |
 | **Trust Scores** | No trust score API | Static demo values |
@@ -55,6 +57,7 @@ The Argus platform consists of a Django Ninja backend and a Next.js frontend. Th
 ```bash
 # API Configuration
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_WS_URL=ws://localhost:8000
 
 # App Configuration
 NEXT_PUBLIC_APP_NAME=Argus

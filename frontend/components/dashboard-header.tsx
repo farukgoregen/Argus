@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
-import { Bell, User, LogOut, Settings, CreditCard, Sun, Moon, Monitor, Home } from "lucide-react"
+import { Bell, User, LogOut, Settings, CreditCard, Sun, Moon, Monitor, Home, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
 
@@ -18,11 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
+import { useChat } from "@/contexts/chat-context"
 
 export function DashboardHeader() {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const { user, logout, isAuthenticated } = useAuth()
+  const { unreadTotal } = useChat()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -91,14 +93,23 @@ export function DashboardHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Chat Messages */}
+        <Link href="/dashboard/chat">
+          <Button variant="ghost" size="icon" className="relative">
+            <MessageCircle className="h-5 w-5" />
+            {unreadTotal > 0 && (
+              <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary p-0 text-xs">
+                {unreadTotal > 99 ? '99+' : unreadTotal}
+              </Badge>
+            )}
+          </Button>
+        </Link>
+
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive p-0 text-xs">
-                3
-              </Badge>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">

@@ -1,0 +1,256 @@
+"""
+Public Product API router for Django Ninja.
+
+This module provides public (no authentication required) buyer-facing endpoints:
+- Product search across all sellers or filtered by seller
+- Product detail view
+- Product offers (same product from different sellers)
+"""
+import math
+from typing import Optional, List
+from uuid import UUID
+
+from ninja import Router, Query
+from ninja.errors import HttpError
+
+from django.db.models import Q, Case, When, Value, IntegerField
+from django.db.models.functions import Lower
+
+from .models import Product
+from .schemas import (
+    ProductPhotoSchema,
+    ErrorSchema,
+)
+from .public_schemas import (
+    PublicProductListItemSchema,
+    PaginatedPublicProductListSchema,
+    PublicProductDetailSchema,
+)
+
+router = Router(tags=["Public Products"])
+
+
+@router.get(
+    "/search",
+    response={200: PaginatedPublicProductListSchema, 422: ErrorSchema},
+    summary="Search products (public)",
+    description="Search for products across all sellers or within a specific seller's catalog. No authentication required.",
+)
+def search_products(
+    request,
+    q: str = Query(..., description="Search query (min 2 characters). Searches product name and category."),
+    seller_id: Optional[UUID] = Query(None, description="Filter by seller (owner_id). If not provided, searches all sellers."),
+    price_min: Optional[float] = Query(None, ge=0, description="Minimum price filter (inclusive)."),
+    price_max: Optional[float] = Query(None, ge=0, description="Maximum price filter (inclusive)."),
+    page: int = Query(1, ge=1, description="Page number (default: 1)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page (default: 20, max: 100)"),
+):
+    """
+    Public product search endpoint for buyers.
+    
+    **Search Behavior:**
+    - Searches both product_name and product_category (case-insensitive)
+    - Minimum query length: 2 characters
+    
+    **Ranking (results ordered by):**
+    1. Exact name match (case-insensitive)
+    2. Name starts with query
+    3. Name contains query
+    4. Category contains query
+    
+    **Filtering:**
+    - Only active products are returned (is_active=True)
+    - If seller_id is provided, only products from that seller are returned
+    - If seller_id is not provided, products from all sellers are returned
+    - If price_min/price_max are provided, filter by unit_price
+    
+    **Query Parameters:**
+    - `q`: Search query (required, min 2 characters)
+    - `seller_id`: Filter by seller UUID (optional)
+    - `price_min`: Minimum price (optional)
+    - `price_max`: Maximum price (optional)
+    - `page`: Page number (default: 1)
+    - `page_size`: Items per page (default: 20, max: 100)
+    """
+    # Validate query length
+    q = q.strip()
+    if len(q) < 2:
+        raise HttpError(422, "Search query must be at least 2 characters")
+    
+    q_lower = q.lower()
+    
+    # Base filter: only active products
+    base_filter = Q(is_active=True)
+    
+    # Filter by seller if provided
+    if seller_id:
+        base_filter &= Q(owner_id=seller_id)
+    
+    # Filter by price range if provided
+    if price_min is not None:
+        base_filter &= Q(unit_price__gte=price_min)
+    if price_max is not None:
+        base_filter &= Q(unit_price__lte=price_max)
+    
+    # Search filter: name OR category contains query
+    search_filter = Q(product_name__icontains=q) | Q(product_category__icontains=q)
+    
+    # Build ranking annotation using Case/When
+    # rank 0: exact product_name match (case-insensitive)
+    # rank 1: product_name startswith query
+    # rank 2: product_name contains query
+    # rank 3: product_category contains query only (name doesn't match)
+    rank_annotation = Case(
+        # Exact name match (case-insensitive)
+        When(
+            condition=Q(product_name__iexact=q),
+            then=Value(0)
+        ),
+        # Name starts with query
+        When(
+            condition=Q(product_name__istartswith=q),
+            then=Value(1)
+        ),
+        # Name contains query
+        When(
+            condition=Q(product_name__icontains=q),
+            then=Value(2)
+        ),
+        # Category contains query (name doesn't match, so this is category-only)
+        default=Value(3),
+        output_field=IntegerField()
+    )
+    
+    # Build the query with annotation
+    queryset = (
+        Product.objects
+        .filter(base_filter & search_filter)
+        .annotate(search_rank=rank_annotation)
+        .select_related('owner')
+        .prefetch_related('photos')
+        .order_by('search_rank', 'product_name', '-updated_at')
+    )
+    
+    # Get total count
+    total = queryset.count()
+    
+    # Paginate
+    offset = (page - 1) * page_size
+    products = queryset[offset:offset + page_size]
+    
+    pages = math.ceil(total / page_size) if total > 0 else 1
+    
+    return {
+        "items": list(products),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
+    }
+
+
+@router.get(
+    "/{product_id}",
+    response={200: PublicProductDetailSchema, 404: ErrorSchema},
+    summary="Get product detail (public)",
+    description="Get detailed information about a specific product. No authentication required.",
+)
+def get_product_detail(request, product_id: UUID):
+    """
+    Public product detail endpoint for buyers.
+    
+    Returns detailed product information including:
+    - All product fields
+    - Seller information (id, display_name)
+    - All photos
+    - Stock status and quantity
+    - Created and updated timestamps
+    
+    Only active products are accessible.
+    """
+    try:
+        product = (
+            Product.objects
+            .filter(id=product_id, is_active=True)
+            .select_related('owner', 'owner__supplier_profile')
+            .prefetch_related('photos')
+            .first()
+        )
+        
+        if not product:
+            raise HttpError(404, "Product not found")
+        
+        return product
+    except Exception as e:
+        if isinstance(e, HttpError):
+            raise
+        raise HttpError(404, "Product not found")
+
+
+@router.get(
+    "/{product_id}/offers",
+    response={200: PaginatedPublicProductListSchema, 404: ErrorSchema},
+    summary="Get offers for same product (public)",
+    description="Get all offers for the same product (same name and category) from different sellers.",
+)
+def get_product_offers(
+    request,
+    product_id: UUID,
+    page: int = Query(1, ge=1, description="Page number (default: 1)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page (default: 20, max: 100)"),
+):
+    """
+    Get all offers for the same product from different sellers.
+    
+    "Same product" is defined as products with:
+    - Exact match on product_name (case-insensitive)
+    - Exact match on product_category (case-insensitive)
+    
+    Results are sorted by unit_price ascending (cheapest first).
+    
+    **Note:** This endpoint finds all active products matching the base product's
+    name and category, effectively showing all sellers offering the "same" product.
+    """
+    # First get the base product
+    base_product = (
+        Product.objects
+        .filter(id=product_id, is_active=True)
+        .first()
+    )
+    
+    if not base_product:
+        raise HttpError(404, "Product not found")
+    
+    # Normalize: strip and lowercase for comparison
+    normalized_name = base_product.product_name.strip().lower()
+    normalized_category = base_product.product_category.strip().lower()
+    
+    # Find all products with exact match on name AND category (case-insensitive)
+    queryset = (
+        Product.objects
+        .filter(
+            is_active=True,
+            product_name__iexact=base_product.product_name.strip(),
+            product_category__iexact=base_product.product_category.strip(),
+        )
+        .select_related('owner', 'owner__supplier_profile')
+        .prefetch_related('photos')
+        .order_by('unit_price', '-updated_at')  # Cheapest first
+    )
+    
+    # Get total count
+    total = queryset.count()
+    
+    # Paginate
+    offset = (page - 1) * page_size
+    products = queryset[offset:offset + page_size]
+    
+    pages = math.ceil(total / page_size) if total > 0 else 1
+    
+    return {
+        "items": list(products),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
+    }

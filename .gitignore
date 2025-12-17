@@ -1,0 +1,245 @@
+# ================================
+# Python / Django Backend
+# ================================
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.env/
+
+# Django specific
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+backend/db.sqlite3
+backend/db.sqlite3-journal
+/media/
+/staticfiles/
+/static/
+backend/media/
+backend/staticfiles/
+backend/static/
+
+# Django migrations (keep tracked - don't ignore)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# ================================
+# Node.js / Next.js Frontend
+# ================================
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+frontend/.next/
+.next/
+out/
+.vercel/
+
+# Next.js build output
+frontend/out/
+frontend/.vercel/
+
+# Production build
+frontend/build/
+build/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# ESLint
+.eslintcache
+
+# Turbo
+.turbo/
+
+# ================================
+# Environment Variables
+# ================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# ================================
+# Docker
+# ================================
+.dockerignore
+Dockerfile*
+docker-compose*
+.docker/
+nginx/
+
+# Ignore local volumes (if any)
+volumes/
+
+# Ignore .env (but not .env.example)
+.env
+!.env.example
+
+# ================================
+# IDE / Editor
+# ================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains (PyCharm, WebStorm)
+.idea/
+*.iml
+out/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ================================
+# OS Generated Files
+# ================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# ================================
+# Miscellaneous
+# ================================
+
+# Backup files
+*.bak
+*.tmp
+*.temp
+*.backup
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+*.cache
+
+# Documentation builds
+/site/
+docs/_build/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# SageMath parsed files
+*.sage.py
+
+# Secrets (additional protection)
+*.pem
+*.key
+secrets.json
+credentials.json

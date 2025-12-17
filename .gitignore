@@ -144,15 +144,6 @@ frontend/.env.development.local
 frontend/.env.test.local
 frontend/.env.production.local
 
-# ================================
-# Docker
-# ================================
-.dockerignore
-Dockerfile*
-docker-compose*
-.docker/
-nginx/
-
 # Ignore local volumes (if any)
 volumes/
 

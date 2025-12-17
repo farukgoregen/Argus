@@ -21,6 +21,8 @@ The Argus platform consists of a Django Ninja backend and a Next.js frontend. Th
 | **Product Search** (`/dashboard/search`) | `GET /api/public/products/search` | Public product search for buyers |
 | **Product Detail** (`/dashboard/product/[id]`) | `GET /api/home-feed` | Single product view (fetches from home feed) |
 | **AI Assistant** (widget) | `POST /api/ai/chat` | AI-powered chat assistant |
+| **Global AI Assistant** | `POST /api/ai/assistant` | Floating AI widget on every page |
+| **Image Search** | `POST /api/ai/vision-keywords` | AI image analysis for product search |
 | **Supplier Products** (`/dashboard/supplier/products`) | `GET/POST/PATCH/DELETE /api/products/*` | Full CRUD for supplier products |
 | **Supplier Dashboard** (`/dashboard/supplier`) | `GET /api/products/critical-stock` | Critical stock alerts |
 | **Profile Edit** (`/dashboard/profile`) | `GET/PATCH /api/profile/{buyer\|supplier}` | View and update buyer/supplier profile |
@@ -57,7 +59,7 @@ The Argus platform consists of a Django Ninja backend and a Next.js frontend. Th
 ```bash
 # API Configuration
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
-NEXT_PUBLIC_WS_URL=ws://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000  # For local dev (direct to backend). Use ws://localhost for Docker/production
 
 # App Configuration
 NEXT_PUBLIC_APP_NAME=Argus
@@ -181,6 +183,78 @@ Usage in components:
 ```typescript
 const { user, isAuthenticated, login, logout } = useAuth();
 ```
+
+## AI Integration (Gemini 2.5 Flash)
+
+The platform uses Google's Gemini 2.5 Flash model for AI features. **All AI calls are proxied through the backend to keep the API key secure.**
+
+### Configuration
+
+Add `GEMINI_API_KEY` to your backend `.env` file:
+
+```bash
+GEMINI_API_KEY=your-gemini-api-key-here
+```
+
+> ⚠️ **Never expose the Gemini API key in the frontend!** All AI requests go through `/api/ai/*` endpoints.
+
+### AI Endpoints
+
+| Endpoint | Auth | Description |
+|----------|------|-------------|
+| `POST /api/ai/vision-keywords` | Optional | Extract 1-2 product keywords from an uploaded image |
+| `POST /api/ai/assistant` | Optional | Public AI assistant (works logged in or out) |
+| `POST /api/ai/chat` | Required | Dashboard AI chat (authenticated users) |
+
+### Vision Keywords (`/api/ai/vision-keywords`)
+
+Accepts an image upload and returns product search keywords:
+
+**Request:** `multipart/form-data` with `file` field (JPEG, PNG, WebP, GIF; max 10MB)
+
+**Response:**
+```json
+{
+  "keywords": ["iphone", "smartphone"],
+  "raw_text": "..."
+}
+```
+
+Used by the homepage image search feature.
+
+### Public Assistant (`/api/ai/assistant`)
+
+Works for both authenticated and unauthenticated users. Appears as a floating widget on every page.
+
+**Request:**
+```json
+{
+  "message": "How do I search for products?",
+  "context": {
+    "route": "/dashboard",
+    "user_type": "buyer"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "reply": "You can search using the search bar at the top..."
+}
+```
+
+### Frontend Components
+
+- **`<HeroSearch />`** - Homepage search with image upload
+- **`<GlobalAIAssistant />`** - Floating chat widget (bottom-left on all pages)
+- **`<AIAssistant />`** - Dashboard-specific AI chat (right-side widget)
+
+### Rate Limiting
+
+The assistant endpoint has basic rate limiting:
+- 20 requests per minute per user/IP
+- Returns a friendly message if exceeded
 
 ## Endpoints Not Yet Implemented in Backend
 

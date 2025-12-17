@@ -40,6 +40,8 @@ def search_products(
     request,
     q: str = Query(..., description="Search query (min 2 characters). Searches product name and category."),
     seller_id: Optional[UUID] = Query(None, description="Filter by seller (owner_id). If not provided, searches all sellers."),
+    price_min: Optional[float] = Query(None, ge=0, description="Minimum price filter (inclusive)."),
+    price_max: Optional[float] = Query(None, ge=0, description="Maximum price filter (inclusive)."),
     page: int = Query(1, ge=1, description="Page number (default: 1)"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page (default: 20, max: 100)"),
 ):
@@ -60,10 +62,13 @@ def search_products(
     - Only active products are returned (is_active=True)
     - If seller_id is provided, only products from that seller are returned
     - If seller_id is not provided, products from all sellers are returned
+    - If price_min/price_max are provided, filter by unit_price
     
     **Query Parameters:**
     - `q`: Search query (required, min 2 characters)
     - `seller_id`: Filter by seller UUID (optional)
+    - `price_min`: Minimum price (optional)
+    - `price_max`: Maximum price (optional)
     - `page`: Page number (default: 1)
     - `page_size`: Items per page (default: 20, max: 100)
     """
@@ -80,6 +85,12 @@ def search_products(
     # Filter by seller if provided
     if seller_id:
         base_filter &= Q(owner_id=seller_id)
+    
+    # Filter by price range if provided
+    if price_min is not None:
+        base_filter &= Q(unit_price__gte=price_min)
+    if price_max is not None:
+        base_filter &= Q(unit_price__lte=price_max)
     
     # Search filter: name OR category contains query
     search_filter = Q(product_name__icontains=q) | Q(product_category__icontains=q)

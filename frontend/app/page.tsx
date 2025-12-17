@@ -27,6 +27,7 @@ export default function LandingPage() {
               Analyze price trends, calculate profit margins, and secure your supply chain with real-time data from
               trusted global suppliers.
             </p>
+            
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button asChild size="lg" className="w-full sm:w-auto">
                 <Link href="/register">

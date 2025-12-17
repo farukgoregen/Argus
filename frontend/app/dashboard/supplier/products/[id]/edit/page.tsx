@@ -48,6 +48,11 @@ interface EditablePhoto extends ProductPhoto {
   markedForDeletion?: boolean
 }
 
+interface FeatureItem {
+  key: string
+  value: string
+}
+
 export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
@@ -71,7 +76,7 @@ export default function EditProductPage() {
   const [unitPrice, setUnitPrice] = useState("")
   const [stockQuantity, setStockQuantity] = useState("")
   const [sellQuantity, setSellQuantity] = useState("")
-  const [features, setFeatures] = useState("")
+  const [features, setFeatures] = useState<FeatureItem[]>([])
   const [isActive, setIsActive] = useState(true)
 
   // Photo management state
@@ -105,7 +110,16 @@ export default function EditProductPage() {
         setUnitPrice(product.unit_price)
         setStockQuantity(String(product.stock_quantity))
         setSellQuantity(String(product.sell_quantity))
-        setFeatures(product.features ? JSON.stringify(product.features, null, 2) : "")
+        // Convert features object to array of key-value pairs
+        if (product.features && typeof product.features === 'object') {
+          const featureEntries = Object.entries(product.features).map(([key, value]) => ({
+            key,
+            value: String(value),
+          }))
+          setFeatures(featureEntries)
+        } else {
+          setFeatures([])
+        }
         setIsActive(product.is_active)
         setPhotos(product.photos.map(p => ({ ...p, markedForDeletion: false })))
       } else if (response.error) {
@@ -168,12 +182,15 @@ export default function EditProductPage() {
       errors.sellQuantity = "MOQ must be at least 1"
     }
 
-    if (features.trim()) {
-      try {
-        JSON.parse(features)
-      } catch {
-        errors.features = "Features must be valid JSON"
-      }
+    // Validate features - check for duplicate keys
+    const featureKeys = features.map(f => f.key.trim().toLowerCase())
+    const uniqueKeys = new Set(featureKeys)
+    if (featureKeys.length !== uniqueKeys.size) {
+      errors.features = "Duplicate feature keys are not allowed"
+    }
+    // Check for empty keys with values
+    if (features.some(f => !f.key.trim() && f.value.trim())) {
+      errors.features = "Feature key cannot be empty"
     }
 
     setValidationErrors(errors)
@@ -201,13 +218,20 @@ export default function EditProductPage() {
         is_active: isActive,
       }
 
-      // Add features if present
-      if (features.trim()) {
-        try {
-          updateData.features = JSON.parse(features)
-        } catch {
-          // Already validated
-        }
+      // Convert features array to object
+      const validFeatures = features.filter(f => f.key.trim())
+      if (validFeatures.length > 0) {
+        const featuresObject: Record<string, unknown> = {}
+        validFeatures.forEach(f => {
+          // Try to parse as number or boolean, otherwise keep as string
+          const trimmedValue = f.value.trim()
+          let parsedValue: unknown = trimmedValue
+          if (trimmedValue === 'true') parsedValue = true
+          else if (trimmedValue === 'false') parsedValue = false
+          else if (!isNaN(Number(trimmedValue)) && trimmedValue !== '') parsedValue = Number(trimmedValue)
+          featuresObject[f.key.trim()] = parsedValue
+        })
+        updateData.features = featuresObject
       }
 
       // Photos to delete
@@ -637,29 +661,120 @@ export default function EditProductPage() {
           {/* Features */}
           <Card>
             <CardHeader>
-              <CardTitle>Features</CardTitle>
-              <CardDescription>Additional product attributes (JSON format)</CardDescription>
+              <CardTitle>Product Specifications</CardTitle>
+              <CardDescription>Add detailed product attributes to help buyers find your product</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-2">
-                <Label htmlFor="features">
-                  Features (JSON)
-                  {validationErrors.features && (
-                    <span className="text-destructive text-sm ml-2">{validationErrors.features}</span>
-                  )}
-                </Label>
-                <Textarea
-                  id="features"
-                  value={features}
-                  onChange={(e) => setFeatures(e.target.value)}
-                  placeholder='{"color": "black", "material": "steel"}'
-                  rows={4}
-                  className={`font-mono text-sm ${validationErrors.features ? "border-destructive" : ""}`}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter key-value pairs in JSON format. Example: {`{"color": "black", "size": "large"}`}
-                </p>
+            <CardContent className="space-y-6">
+              {validationErrors.features && (
+                <p className="text-destructive text-sm">{validationErrors.features}</p>
+              )}
+              
+              {/* Existing features as labeled inputs */}
+              {features.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {features.map((feature, index) => (
+                    <div key={index} className="group relative">
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="capitalize">
+                            {feature.key ? feature.key.replace(/_/g, ' ') : 'Custom Attribute'}
+                          </Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setFeatures(features.filter((_, i) => i !== index))
+                            }}
+                            className="h-6 px-2 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                        {/* If key is empty (custom), show key input. Otherwise just value */}
+                        {!feature.key ? (
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Attribute name"
+                              value={feature.key}
+                              onChange={(e) => {
+                                const newFeatures = [...features]
+                                newFeatures[index].key = e.target.value
+                                setFeatures(newFeatures)
+                              }}
+                              className="flex-1"
+                            />
+                            <Input
+                              placeholder="Value"
+                              value={feature.value}
+                              onChange={(e) => {
+                                const newFeatures = [...features]
+                                newFeatures[index].value = e.target.value
+                                setFeatures(newFeatures)
+                              }}
+                              className="flex-1"
+                            />
+                          </div>
+                        ) : (
+                          <Input
+                            placeholder={`Enter ${feature.key.replace(/_/g, ' ')}`}
+                            value={feature.value}
+                            onChange={(e) => {
+                              const newFeatures = [...features]
+                              newFeatures[index].value = e.target.value
+                              setFeatures(newFeatures)
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Empty state */}
+              {features.length === 0 && (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No specifications added yet. Add details like brand, SKU, origin, material, etc.
+                  </p>
+                </div>
+              )}
+              
+              {/* Quick add buttons for common features */}
+              <div className="space-y-3">
+                <Label className="text-xs text-muted-foreground">Quick Add</Label>
+                <div className="flex flex-wrap gap-2">
+                  {['SKU', 'Brand', 'Origin', 'Unit', 'Material', 'Weight', 'Dimensions', 'Warranty', 'Lead Time', 'MOQ', 'Packaging'].map((suggestion) => {
+                    const exists = features.some(f => f.key.toLowerCase() === suggestion.toLowerCase())
+                    return (
+                      <Button
+                        key={suggestion}
+                        type="button"
+                        variant={exists ? "secondary" : "outline"}
+                        size="sm"
+                        disabled={exists}
+                        onClick={() => setFeatures([...features, { key: suggestion.toLowerCase().replace(' ', '_'), value: '' }])}
+                        className="h-7 text-xs"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        {suggestion}
+                      </Button>
+                    )
+                  })}
+                </div>
               </div>
+              
+              {/* Custom add */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFeatures([...features, { key: '', value: '' }])}
+                className="w-full"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Custom Attribute
+              </Button>
             </CardContent>
           </Card>
 

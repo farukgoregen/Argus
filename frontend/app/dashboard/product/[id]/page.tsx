@@ -7,8 +7,9 @@ import { useParams, useRouter } from "next/navigation"
 import { 
   Package, ArrowLeft, Loader2, AlertCircle, Truck, 
   MapPin, Star, Clock, Calculator, Sparkles, ChevronDown,
-  Globe, CheckCircle2 
+  Globe, CheckCircle2, MessageCircle
 } from "lucide-react"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,7 +23,9 @@ import {
 } from "@/components/ui/select"
 import { publicProductService } from "@/lib/services/public-product-service"
 import { watchlistService } from "@/lib/services/watchlist-service"
+import { chatService } from "@/lib/services/chat-service"
 import { WatchlistButton } from "@/components/watchlist-button"
+import { useAuth } from "@/contexts/auth-context"
 import type { PublicProductDetail, PublicProductListItem } from "@/lib/api-types"
 
 // ============================================
@@ -311,12 +314,18 @@ function OfferRow({
   offer,
   isCheapest,
   isBestLanded,
-  destination
+  destination,
+  productId,
+  onContact,
+  isContacting,
 }: { 
   offer: OfferWithLandedCost
   isCheapest: boolean
   isBestLanded: boolean
   destination: Destination | null
+  productId: string
+  onContact: (sellerId: string, productId: string) => void
+  isContacting: boolean
 }) {
   const canShip = offer.shippingInfo.available
   
@@ -412,7 +421,17 @@ function OfferRow({
         )}
         
         {/* Action */}
-        <Button size="sm" variant={canShip || !destination ? "default" : "outline"} disabled={!canShip && !!destination}>
+        <Button 
+          size="sm" 
+          variant={canShip || !destination ? "default" : "outline"} 
+          disabled={(!canShip && !!destination) || isContacting}
+          onClick={() => onContact(offer.seller_id, productId)}
+        >
+          {isContacting ? (
+            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+          ) : (
+            <MessageCircle className="mr-1 h-4 w-4" />
+          )}
           Contact
         </Button>
       </div>
@@ -427,6 +446,7 @@ function OfferRow({
 export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
   const id = params.id as string
   
   const [product, setProduct] = useState<PublicProductDetail | null>(null)
@@ -435,6 +455,35 @@ export default function ProductDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [isInWatchlist, setIsInWatchlist] = useState(false)
   const [destination, setDestination] = useState<Destination | null>(null)
+  const [isContacting, setIsContacting] = useState(false)
+
+  // Handle contact button click
+  const handleContact = async (sellerId: string, productId: string) => {
+    if (!isAuthenticated) {
+      toast.error('Please login to contact the seller')
+      router.push(`/login?redirect=/dashboard/product/${productId}`)
+      return
+    }
+
+    setIsContacting(true)
+    try {
+      const response = await chatService.createOrGetThread({
+        supplier_id: sellerId,
+        product_id: productId,
+      })
+
+      if (response.data) {
+        router.push(`/dashboard/chat?thread=${response.data.id}`)
+      } else {
+        toast.error(response.error?.detail || 'Failed to start chat')
+      }
+    } catch (error) {
+      console.error('Failed to create chat thread:', error)
+      toast.error('Failed to start chat')
+    } finally {
+      setIsContacting(false)
+    }
+  }
 
   // Load saved destination from localStorage
   useEffect(() => {
@@ -734,6 +783,9 @@ export default function ProductDetailPage() {
                 isCheapest={index === 0}
                 isBestLanded={bestLandedOffer?.id === offer.id}
                 destination={destination}
+                productId={id}
+                onContact={handleContact}
+                isContacting={isContacting}
               />
             ))
           )}

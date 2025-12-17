@@ -40,6 +40,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,11 +51,13 @@ INSTALLED_APPS = [
     'corsheaders',
     'ninja_jwt',
     'ninja_jwt.token_blacklist',
+    'channels',
     # Local apps
     'users',
     'ai',
     'products',
     'home',
+    'chat',
 ]
 
 # Product settings
@@ -112,6 +115,25 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+# Channel Layers Configuration
+# Use Redis if available, otherwise use in-memory for development
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    }
 
 
 # Database
